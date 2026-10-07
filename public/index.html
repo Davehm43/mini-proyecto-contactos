@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <!-- Permite utilizar correctamente caracteres como á, é, í, ó, ú, ñ -->
+  <meta charset="UTF-8">
+
+  <!-- Título que aparece en la pestaña del navegador -->
+  <title>Mis contactos</title>
+</head>
+
+<body>
+
+  <!-- Título principal de nuestra página -->
+  <h1>Mis Contactos</h1>
+
+  <!--
+    Botón que utilizaremos para pedir los contactos
+    al servidor cuando el usuario haga clic.
+  -->
+  <button id="btnCargar">
+    Cargar Contactos
+  </button>
+
+  <h2>Agregar contacto</h2>
+
+  <form id="formContacto">
+
+    <!-- Campo para escribir el nombre -->
+    <input type="text" id="nombre" placeholder="Nombre">
+    <br>
+    <br>
+    <!-- Campo para escribir el teléfono -->
+    <input type="text" id="telefono" placeholder="Teléfono">
+    <br>
+    <br>
+
+    <!-- Botón para enviar el formulario -->
+    <button type="submit">
+      Agregar contacto
+    </button>
+
+  </form>
+
+  <!--
+    Aquí vamos a colocar los contactos que recibamos
+    desde nuestro backend.
+  -->
+  <div id="listaContactos"></div>
+
+
+  <script>
+
+    // ==========================================
+    // 1. BUSCAR ELEMENTOS DEL HTML
+    // ==========================================
+
+    const boton = document.getElementById("btnCargar");
+    const lista = document.getElementById("listaContactos");
+    const formulario = document.getElementById("formContacto");
+
+
+    // ==========================================
+    // 2. FUNCIÓN PARA CARGAR CONTACTOS
+    // ==========================================
+
+    async function cargarContactos() {
+
+      const respuesta = await fetch(
+        "http://localhost:3000/contactos"
+      );
+
+      const contactos = await respuesta.json();
+
+      lista.innerHTML = "";
+
+      contactos.forEach((contacto) => {
+
+        lista.innerHTML += `
+        <p>
+          ${contacto.id} -
+          ${contacto.nombre} -
+          ${contacto.telefono}
+
+        <button onclick="editarContacto(${contacto.id})">
+        Editar
+      </button>
+
+          <button onclick="eliminarContacto(${contacto.id})">
+            Eliminar
+          </button>
+
+          <button onclick="actualizarNombre(${contacto.id})">
+  Editar nombre
+</button>
+        </p>
+      `;
+
+      });
+    }
+
+
+    // ==========================================
+    // 3. BOTÓN CARGAR CONTACTOS
+    // ==========================================
+
+    boton.addEventListener("click", cargarContactos);
+
+
+    // ==========================================
+    // 4. ENVIAR FORMULARIO
+    // ==========================================
+
+    formulario.addEventListener("submit", async (evento) => {
+
+      evento.preventDefault();
+
+      const nombre = document.getElementById("nombre").value;
+      const telefono = document.getElementById("telefono").value;
+
+
+      // ==========================================
+      // 5. CREAR OBJETO
+      // ==========================================
+
+      const nuevoContacto = {
+        nombre: nombre,
+        telefono: telefono
+      };
+
+
+      // ==========================================
+      // 6. ENVIAR POST A EXPRESS
+      // ==========================================
+
+      const respuesta = await fetch(
+        "http://localhost:3000/contactos",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify(nuevoContacto)
+        }
+      );
+
+
+      // ==========================================
+      // 7. COMPROBAR SI HUBO ERROR
+      // ==========================================
+
+      if (!respuesta.ok) {
+
+        const error = await respuesta.json();
+
+        console.log(error);
+
+        return;
+      }
+
+
+      // ==========================================
+      // 8. LEER CONTACTO CREADO
+      // ==========================================
+
+      const contactoCreado = await respuesta.json();
+
+      console.log(
+        "Contacto creado:",
+        contactoCreado
+      );
+
+
+      // ==========================================
+      // 9. VOLVER A CARGAR LA LISTA
+      // ==========================================
+
+      await cargarContactos();
+
+
+      // ==========================================
+      // 10. LIMPIAR FORMULARIO
+      // ==========================================
+
+      formulario.reset();
+
+    });
+
+
+    // ==========================================
+    // 11. ELIMINAR CONTACTO
+    // ==========================================
+
+    async function eliminarContacto(id) {
+
+      const respuesta = await fetch(
+        `http://localhost:3000/contactos/${id}`,
+        {
+          method: "DELETE"
+        }
+      );
+
+
+      // ==========================================
+      // 12. COMPROBAR SI HUBO ERROR
+      // ==========================================
+
+      if (!respuesta.ok) {
+
+        const error = await respuesta.json();
+
+        console.log(error);
+
+        return;
+      }
+
+
+      // ==========================================
+      // 13. MOSTRAR MENSAJE
+      // ==========================================
+
+      console.log("Contacto eliminado");
+
+
+      // ==========================================
+      // 14. ACTUALIZAR LA LISTA
+      // ==========================================
+
+      await cargarContactos();
+
+    }
+
+    async function editarContacto(id) {
+
+      const nombre = prompt("Ingrese el nuevo nombre:");
+
+      const telefono = prompt("Ingrese el nuevo teléfono:");
+
+      const contactoActualizado = {
+        nombre: nombre,
+        telefono: telefono
+      };
+
+      const respuesta = await fetch(
+        `http://localhost:3000/contactos/${id}`,
+        {
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify(contactoActualizado)
+        }
+      );
+
+      if (!respuesta.ok) {
+
+        const error = await respuesta.json();
+
+        console.log(error);
+
+        return;
+      }
+
+      const contacto = await respuesta.json();
+
+      console.log(
+        "Contacto actualizado:",
+        contacto
+      );
+
+      await cargarContactos();
+    }
+
+
+    async function actualizarNombre(id) {
+
+      const nombre = prompt("Ingrese el nuevo nombre:");
+
+      if (!nombre) {
+        return;
+      }
+
+      const datos = {
+        nombre: nombre
+      };
+
+      const respuesta = await fetch(
+        `http://localhost:3000/contactos/${id}`,
+        {
+          method: "PATCH",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify(datos)
+        }
+      );
+
+      if (!respuesta.ok) {
+
+        const error = await respuesta.json();
+
+        console.log(error);
+
+        return;
+      }
+
+      const contactoActualizado = await respuesta.json();
+
+      console.log(
+        "Contacto actualizado:",
+        contactoActualizado
+      );
+
+      await cargarContactos();
+    }
+
+  </script>
+
+</body>
+
+</html>
